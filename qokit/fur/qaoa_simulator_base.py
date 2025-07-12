@@ -36,6 +36,7 @@ class QAOAFastSimulatorBase(ABC):
         n_qubits: int,
         costs: CostsType | None = None,
         terms: TermsType | None = None,
+        backend=None
     ) -> None:
         """
         Create the simulator.
@@ -57,6 +58,7 @@ class QAOAFastSimulatorBase(ABC):
         """
         self.n_qubits = n_qubits
         self.n_states = 2**n_qubits
+        self.backend = backend
         if costs is None:
             if terms is None:
                 raise ValueError("Either costs or terms must be provided")

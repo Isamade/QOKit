@@ -51,8 +51,7 @@ def optimise_bobyqa(obj, x0):
 # --------------------------------------------------------------------------- #
 def run_once(N, K, q, p, optimiser="lbfgs"):
     po = get_problem(N=N, K=K, q=q, pre="rule")
-    obj = get_qaoa_portfolio_objective(po, p=p, jac=True,
-                                       precomputed_energies="vectorized")
+    obj = get_qaoa_portfolio_objective(po, p=p, jac=True,device=args.device,precomputed_energies="vectorized")
 
     x0 = np.random.default_rng(0).random(2 * p)
 
@@ -79,6 +78,7 @@ def main() -> None:
                     help="list of p layers to try")
     pa.add_argument("--optim", choices=["lbfgs", "bobyqa"], default="lbfgs",
                     help="choose optimiser (default: lbfgs)")
+    parser.add_argument("--device", choices=["cpu", "gpu"], default="cpu")
     args = pa.parse_args()
 
     rows = [run_once(args.N, args.K, args.q, p, optimiser=args.optim)

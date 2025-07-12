@@ -1,3 +1,8 @@
+## GPU enhcacement (v0.4.x)
+conda env create -f environment.yml     # builds GPU-ready env
+conda activate qokit-po-gpu
+
+
 ## 🔥 CPU Enhancements (v0.3.x)
 
 | ID | Component | What changed | Speed gain *vs v0.2* |

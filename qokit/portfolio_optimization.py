@@ -138,6 +138,22 @@ def get_configuration_cost_kw_vector(config, po_problem=None):
     return get_configuration_cost_vector(po_problem, config)
 
 
+def cost_vector_gpu(bit_mat, mu, cov, q):
+    """
+    Compute diagonal energies on GPU.
+    bit_mat : CuPy array shape (B, N) of {0,1}
+    mu      : (N,) vector   – expected returns
+    cov     : (N,N) matrix  – covariance
+    q       : risk-aversion
+    Returns : CuPy vector length B
+    """
+    import cupy as cp
+    bm  = cp.asarray(bit_mat, dtype=cp.float64)
+    mu_ = cp.asarray(mu)
+    cov_ = cp.asarray(cov)
+    return q * cp.einsum("bi,ij,bj->b", bm, cov_, bm) - bm @ mu_
+
+
 def po_obj_func(po_problem: dict) -> float:
     """
     Wrapper function for compute a portofolio value
@@ -411,3 +427,4 @@ def alignment_para_to_qokit_scale(gammas: Sequence[float] | None, betas: Sequenc
     gammas = np.asarray(gammas) * 2
     betas = np.asarray(betas) * 2
     return gammas, betas
+

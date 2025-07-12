@@ -31,6 +31,7 @@ def _get_qiskit_objective(
     parameterization: str | QAOAParameterization = "theta",
     mixer: str = "x",
     optimization_type="min",
+        backend=None
 ):
     N = parameterized_circuit.num_qubits
     if objective == "expectation":
@@ -73,20 +74,20 @@ def _get_qiskit_objective(
         raise ValueError(f"Unknown objective passed to get_qaoa_objective: {objective}, allowed ['expectation', 'overlap']")
 
     if mixer == "x":
-        backend = Aer.get_backend("aer_simulator_statevector")
+        sim_backend =  backend or Aer.get_backend("aer_simulator_statevector")
 
         def g(gamma, beta):
             qc = parameterized_circuit.assign_parameters(list(np.hstack([beta, gamma])))
-            sv = np.asarray(backend.run(qc).result().get_statevector())
+            sv = np.asarray(sim_backend.run(qc).result().get_statevector())
             probs = np.abs(sv) ** 2
             return compute_objective_from_probabilities(probs)
 
     elif mixer == "xy":
-        backend = Aer.get_backend("statevector_simulator")
+        sim_backend =  backend or Aer.get_backend("statevector_simulator")
 
         def g(gamma, beta):
             qc = parameterized_circuit.assign_parameters(np.hstack([np.asarray(beta) / 2, np.asarray(gamma) / 2]))
-            circ = transpile(qc, backend)
+            circ = transpile(qc, sim_backend)
             sv = reverse_array_index_bit_order(Statevector(circ))
             probs = np.abs(sv) ** 2
             return compute_objective_from_probabilities(probs)
@@ -111,6 +112,7 @@ def get_qaoa_objective(
     initial_state: np.ndarray | None = None,
     n_trotters: int = 1,
     optimization_type="min",
+    backend=None
 ) -> typing.Callable:
     """Return QAOA objective to be minimized
 
@@ -160,6 +162,7 @@ def get_qaoa_objective(
             parameterization,
             mixer,
             optimization_type=optimization_type,
+            backend=backend
         )
 
         def fq(*args):
@@ -170,9 +173,9 @@ def get_qaoa_objective(
     # --
 
     if mixer == "x":
-        simulator_cls = choose_simulator(name=simulator)
+        simulator_cls = choose_simulator(name=simulator,backend=backend)
     elif mixer == "xy":
-        simulator_cls = choose_simulator_xyring(name=simulator)
+        simulator_cls = choose_simulator_xyring(name=simulator,backend=backend)
     else:
         raise ValueError(f"Unknown mixer type passed to get_qaoa_objective: {mixer}, allowed ['x', 'xy']")
 

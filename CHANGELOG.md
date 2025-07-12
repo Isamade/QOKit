@@ -1,8 +1,21 @@
 # Changelog
 
 All notable changes to **QOKit (portfolio fork)** will be documented here.
-
-## [0.3.0] – 2025-07-11
+## [0.4.0] - 20250-07-05
+### Added
+add backend selection to pick statevector_gpu for better performance (configurable by the end user)
+ add test : test_backend_cpu_passthrough, test_choose_simulator_injects_backend, test_end2end_gpu_statevector (only if gpu avaialble) 
+ 
+### Added
+* **⑥ CuPy cost-vector kernel** (`cost_vector_gpu`) – diagonal energy now
+  computed on GPU global memory.
+* GPU unit tests: backend propagation & energy parity.
+### Bug fix
+  bug fix in get_mixer_Rx replace dc._qubits by qc.qubits
+### Changed
+* `get_qaoa_portfolio_objective` auto-switches to `cost_vector_gpu` when
+  `device="gpu"` and `precomputed_energies="vectorized"`.
+## [0.3.0] – 2025-07-01
 ### Added
 - Benchmark harness `benchmark_vs_bruteforce.py` comparing enhanced
   pipeline to pure-Python brute force for N = 16–25, p = 1–15.
