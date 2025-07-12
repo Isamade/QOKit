@@ -4,7 +4,7 @@ from qokit.qaoa_objective_portfolio import get_qaoa_portfolio_objective
 from qokit.sim_backend import get_backend
 import importlib.util, pytest
 from qiskit_aer import AerSimulator
-
+import numba.cuda
 # Skip on CI nodes without GPU libs
 gpu_available = "statevector_gpu" in AerSimulator().available_methods()
 pytestmark = pytest.mark.skipif(not gpu_available,

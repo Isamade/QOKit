@@ -1,8 +1,12 @@
 # Changelog
+## [0.4.2] – 2025-07-13
+### Added
 
-All notable changes to **QOKit (portfolio fork)** will be documented here.
 ## [0.4.0] - 20250-07-05
 ### Added
+* **⑦ Batch L-BFGS-B** (`batch_minimize_lbfgsb`) + `.batch_opt()` method
+  on GPU objective.  Reduces kernel-launch overhead (8 θ-vectors per call).
+
 add backend selection to pick statevector_gpu for better performance (configurable by the end user)
  add test : test_backend_cpu_passthrough, test_choose_simulator_injects_backend, test_end2end_gpu_statevector (only if gpu avaialble) 
  

@@ -1,5 +1,7 @@
 from __future__ import annotations
 import numpy as np
+
+from .optimizers.batch_lbfgsb import batch_minimize_lbfgsb
 from .utils import precompute_energies, reverse_array_index_bit_order, precompute_energies_vectorized
 from .portfolio_optimization import get_configuration_cost_kw, po_obj_func, portfolio_brute_force, po_obj_func_vector ,cost_vector_gpu
 from qokit.qaoa_circuit_portfolio import generate_dicke_state_fast, get_parameterized_qaoa_circuit
@@ -162,6 +164,9 @@ def get_qaoa_portfolio_objective(
 
     # ----- add a batch-aware shim ---------------------------------------
     sv0_pristine = sv0.copy()
+    # -----------------------------------------------------------------
+    # expose batch optimiser helper on the returned callable
+
 
     if parameterization == "theta":
 
@@ -180,6 +185,14 @@ def get_qaoa_portfolio_objective(
             # -------- single-vector path ------------------------------
             sv0[:] = sv0_pristine
             return f_single(theta)
+
+        if device == "gpu":
+            import types
+            f.batch_opt = types.MethodType(
+                lambda self, x0, B=8, **kw:
+                batch_minimize_lbfgsb(self, np.asarray(x0), batch_size=B, **kw),
+                f,
+            )
 
         return f
 
@@ -200,6 +213,16 @@ def get_qaoa_portfolio_objective(
 
         sv0[:] = sv0_pristine
         return f_single(gamma, beta)
+
+    # -----------------------------------------------------------------
+    # expose batch optimiser helper on the returned callable
+    if device == "gpu":
+        import types
+        f.batch_opt = types.MethodType(
+            lambda self, x0, B=8, **kw:
+            batch_minimize_lbfgsb(self, np.asarray(x0), batch_size=B, **kw),
+            f,
+        )
 
     return f
 
