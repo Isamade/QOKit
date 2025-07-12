@@ -4,6 +4,12 @@
 
 ## [0.4.0] - 20250-07-05
 ### Added
+* `scripts/benchmark_gpu_before_after.py` – end-to-end timing of v0.4.0 vs
+  v0.4.3 on GPU; generates `results/gpu_before_after.csv`.
+* 
+**⑧ Asynchronous CUDA stream** (`utils.cuda_stream`) + pinned-host buffers.
+  Enabled by default when `device="gpu"`.
+
 * **⑦ Batch L-BFGS-B** (`batch_minimize_lbfgsb`) + `.batch_opt()` method
   on GPU objective.  Reduces kernel-launch overhead (8 θ-vectors per call).
 

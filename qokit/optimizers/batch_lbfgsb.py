@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize
+from qokit.utils import async_stream,pinned_array
 
 def batch_minimize_lbfgsb(fun_vec, x0, *, batch_size=8, maxiter=200):
     """
@@ -16,7 +17,9 @@ def batch_minimize_lbfgsb(fun_vec, x0, *, batch_size=8, maxiter=200):
     theta = np.tile(x0, batch_size)   # (B*dim,)
     def f(flat):
         B = flat.size // dim
-        return float(fun_vec(flat.reshape(B, dim)).mean())
+        with async_stream():  # NEW
+            theta_mat = pinned_array(flat.reshape(B, dim))
+        return float(fun_vec(theta_mat).mean())
 
     return minimize(f, theta, method="L-BFGS-B",
                     options={"maxiter": maxiter})
