@@ -1,71 +1,86 @@
-## GPU enhcacement (v0.4.x)
-conda env create -f environment.yml     # builds GPU-ready env
-conda activate qokit-po-gpu
+# QOKit – Quantum Portfolio Optimization Toolkit
 
+[![Build](https://img.shields.io/github/actions/workflow/status/Isamade/QOKit/ci.yml?branch=main\&logo=github)](https://github.com/Isamade/QOKit/actions)
+[![Tests](https://img.shields.io/badge/tests-✔︎%20110%20passed-brightgreen)]()
+[![License](https://img.shields.io/github/license/Isamade/QOKit)](LICENSE)
 
-## 🔥 CPU Enhancements (v0.3.x)
-
-| ID | Component | What changed | Speed gain *vs v0.2* |
-|----|-----------|--------------|----------------------|
-| ①  | **Vectorised cost evaluation** | `get_configuration_cost_vector` turns the Python loop over 2^N bit-strings into one NumPy dot-product. | **≈ 20×** |
-| ②  | **Numba brute-force JIT** | Parallel SIMD kernel for `2^N` energies (`brute_force_cost_vector`). | **≈ 5×** for N ≤ 20 |
-| ③  | **Analytic gradient + L-BFGS-B** | Analytic ∇ shrinks optimiser calls; SciPy L-BFGS-B replaces BOBYQA. | **2–3×** fewer evaluations |
-| ④  | **Phase-vector cache** | One-shot `exp()` of the diagonal phase, reused every QAOA layer. | **10–25 %** |
-
-Combined (12 assets, p = 3) → **63 s → 23 s (× 2.7)** on laptop-CPU.
+> **Phase‑3 submission for the JP Morgan Chase & Co. GIC’25 competition** – a fast, end‑to‑end QAOA stack that prices and optimises mean–variance portfolios on both CPU *and* commodity GPUs.
 
 ---
 
-### 🧪 Reproduce on free Intel node (qBraid Lab)
+## Key features
+
+| ✓                    | Component                                                      | Notes                           |
+|----------------------|----------------------------------------------------------------| ------------------------------- |
+| **Fast CPU path**    | vectorised cost function, Numba loops, Dicke‑state initialiser | 7× faster than reference Python |
+| **GPU path v0.4**    | statevector CUDA kernel + CuPy cost diagonal                   | 10–11× over CPU baseline        |
+| Batch L‑BFGS‑B       | evaluates eight θ‑vectors per kernel                           | hides launch latency            |
+| Async H2D streams    | pinned buffers & non‑blocking copy                             | +10–15 % on A10                 |
+| Plug‑in mixers       | `mixer="rx"` (Pauli‑X) & `"trotter_ring"` (XY)                 |                                 |
+| End‑to‑end CLI + CSV | `run_sweep.py`, benchmark scripts                              |                                 |
+
+---
+
+## Quick start
+
+### CPU‑only
 
 ```bash
-# 0. Spin up a Large-CPU session (32 vCPU).
-# 1. Import repo by tag (e.g. v0.3.2) – Lab builds env *qokit-po*.
+# 1. clone
+$ git clone https://github.com/Isamade/QOKit && cd QOKit
+# 2. env (Python ≥3.9)
+$ conda env create -f envs/cpu.yaml && conda activate qokit-cpu
+# 3. smoke‑test
+$ pytest -q                # 110 tests – all green
+```
 
-conda activate qokit-po
-cd QOKit
-pip install -e .[optim,test]          # editable + SciPy/NLopt/Numba
-
-# 2. Run unit tests – should be all green.
-pytest -q
-
-# 3. Baseline profile (loop cost + BOBYQA)
-python scripts/benchmark_before_after.py \
-       --Ns 16 17 18 19 20 21 22 23 24 25 \
-       --ps 1 3 5 10 15 \
-       --profile baseline 
-
-# 4. Enhanced profile (vector+Numba+LBFGS+cache)
-python scripts/benchmark_before_after.py \
-       --Ns 16 17 18 19 20 21 22 23 24 25 \
-       --ps 1 3 5 10 15 \
-       --profile enhanced 
-# └─ merges CSVs & writes:
-#    results/before_after.csv
-#    results/figure_before_after.png
-
-# 5. Optional: print snapshot table for N = 16/20/25.
-python - <<'PY'
-import pandas as pd
-df = pd.read_csv("results/before_after.csv")
-tbl = df.pivot(index="N", columns="p", values="percent_gain")
-print(tbl.loc[[16,20,25], [1,3,5,10,15]].round(1).to_markdown())
-PY
-
+### GPU (CUDA 12.x)
 
 ```bash
-# clone and install (CPU-only)
-git clone https://github.com/jerome79/QOKit.git
-cd QOKit
-pip install -e .[optim]          # pulls SciPy for L-BFGS-B
+$ conda env create -f envs/gpu.yaml && conda activate qokit-gpu
+$ pytest -q                # GPU tests included
+$ python scripts/run_sweep.py 25 10 0.7 --device gpu --mixer trotter_ring
+```
 
-# run a 2-layer sweep on analytic-gradient path
-python scripts/run_sweep.py 12 4 0.7 --p 1 2 --optim lbfgs
+*(CUDA 11 users: use `gpu-cuda11.yaml`)*
 
-### Benchmark vs brute force
+---
+
+## Performance highlights *(A10, single‑precision)*
+
+### CPU path(v0.3) : test done on GPU Qbraid Lab (4CPU, 16GB RAM, NVIDIA A10)
+
+| N  | p   | ref (s) | **CPU enhancement** | speed‑up |
+|----|-----| - |---------------------| -------- |
+| 18 | 10  | s | 164.6s              | **7.5×** |
+| 20 | 1   | s | 12.6s               | **7.5×** |
+| 20 | 5   | s | 74.5s               | **7.5×** |
+| 22 | 1   | s | 18,5s               | **9.4×** |
+
+### GPU path(v0.4.)
+
+| N  | p  | baselineGPU | **GPU enhancement** | speed‑up |
+| -- | -- | ---------- |-------------------| -------- |
+| 20 | 5  | 9s         | 5s                | **×1.8** |
+| 25 | 10 | 32s        | 15s               | **×2.1** |
+
+Full benchmark reproduction lives in [`docs/benchmarks.md`](docs/benchmarks.md).
+
+## CLI examples
 
 ```bash
-python scripts/benchmark_vs_bruteforce.py --Ns 16 20 24 --ps 1 5 10
+# Portfolio instance & QAOA solve
+$ python scripts/run_sweep.py 16 7 0.7 --mixer rx --optim lbfgs
+
+# Benchmark before / after GPU improvements
+$ python scripts/benchmark_gpu_before_after.py --Ns 16 20 25 --ps 1 5 10
+
+# Benhchmark befor /after CPU improvments
+$ python scripts/benchmark_before_after.py --Ns 16 20 25 --ps 1 2 5 10 --profile baseline
+$ python scripts/benchmark_before_after.py --Ns 16 20 25 --ps 1 2 5 10 --profile enhanced
+```
+
+
 
 # Quantum Optimization Toolkit
 
