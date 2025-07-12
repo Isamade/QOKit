@@ -1,7 +1,7 @@
 from __future__ import annotations
 import numpy as np
 from .utils import precompute_energies, reverse_array_index_bit_order, precompute_energies_vectorized
-from .portfolio_optimization import get_configuration_cost_kw, po_obj_func, portfolio_brute_force, po_obj_func_vector
+from .portfolio_optimization import get_configuration_cost_kw, po_obj_func, portfolio_brute_force, po_obj_func_vector ,cost_vector_gpu
 from qokit.qaoa_circuit_portfolio import generate_dicke_state_fast, get_parameterized_qaoa_circuit
 from .qaoa_objective import get_qaoa_objective
 from qiskit.circuit import ParameterVector # <--- ADD THIS LINE!
@@ -9,6 +9,7 @@ from qiskit.primitives import Estimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qokit.sim_backend import get_backend
 import cupy as cp
+
 
 from qokit.estimator_batch import batched_expectation
 from qiskit_aer import Aer # Assuming you're using Aer, this should be here
