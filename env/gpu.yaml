@@ -1,0 +1,20 @@
+name: qokit-gpu
+channels:
+  - conda-forge
+dependencies:
+  - python =3.11
+  # ---- GPU stack -------------------------------------------------------
+  - qiskit-aer-gpu =0.13.*     # CUDA 12 build; includes statevector_gpu
+  - cupy-cuda12x               # match node driver version
+  # ---- CPU libs --------------------------------------------------------
+  - numpy  >=1.26
+  - scipy  >=1.11
+  - numba  >=0.59
+  # ---- dev / test ------------------------------------------------------
+  - pytest
+  - pandas
+  - matplotlib
+  - ipykernel
+  - pip
+  - pip:
+      - -e .
