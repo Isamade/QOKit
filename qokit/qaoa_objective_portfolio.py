@@ -1,12 +1,17 @@
 from __future__ import annotations
 import numpy as np
+
+from .optimizers.batch_lbfgsb import batch_minimize_lbfgsb
 from .utils import precompute_energies, reverse_array_index_bit_order, precompute_energies_vectorized
-from .portfolio_optimization import get_configuration_cost_kw, po_obj_func, portfolio_brute_force, po_obj_func_vector
+from .portfolio_optimization import get_configuration_cost_kw, po_obj_func, portfolio_brute_force, po_obj_func_vector ,cost_vector_gpu
 from qokit.qaoa_circuit_portfolio import generate_dicke_state_fast, get_parameterized_qaoa_circuit
 from .qaoa_objective import get_qaoa_objective
 from qiskit.circuit import ParameterVector # <--- ADD THIS LINE!
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
+from qokit.sim_backend import get_backend
+import cupy as cp
+
 
 from qokit.estimator_batch import batched_expectation
 from qiskit_aer import Aer # Assuming you're using Aer, this should be here
@@ -34,6 +39,7 @@ def get_qaoa_portfolio_objective(
     objective: str = "expectation",
     precomputed_optimal_bitstrings: np.ndarray | None = None,
     simulator: str = "auto",
+    device: str = "cpu"
 ):
     """Return QAOA objective to be minimized
 
@@ -79,14 +85,25 @@ def get_qaoa_portfolio_objective(
     """
     N = po_problem["N"]
     K = po_problem["K"]
-    if precomputed_energies is None:
+    if device == "gpu" and precomputed_energies == "vectorized":
+        # All bit-strings as binary rows (CuPy)
+        bit_mat = cp.asarray(np.arange(2 ** N)[:, None] >> np.arange(N) & 1)
+        precomputed_energies = cost_vector_gpu(
+            bit_mat, po_problem["means"], po_problem["cov"], po_problem["q"]
+        ).get()  # move to CPU numpy for consistency
+    elif precomputed_energies is None:
         po_obj = po_obj_func(po_problem)
         precomputed_energies = reverse_array_index_bit_order(precompute_energies(po_obj, N)).real
     elif precomputed_energies =="vectorized":
         po_obj = po_obj_func_vector(po_problem)
         precomputed_energies = reverse_array_index_bit_order(precompute_energies_vectorized(po_obj, N)).real
-    if simulator == "qiskit":
+
+
+    backend = get_backend(device)
+
+    if simulator == "qiskit" or device== "gpu":
         parameterized_circuit = get_parameterized_qaoa_circuit(po_problem, depth=p, ini=ini, mixer=mixer, T=T)
+        simulator = "qiskit"
     else:
         parameterized_circuit = None
 
@@ -141,11 +158,15 @@ def get_qaoa_portfolio_objective(
             mixer="xy",
             initial_state=sv0,
             n_trotters=T,
+            backend=backend
         )
     )
 
     # ----- add a batch-aware shim ---------------------------------------
     sv0_pristine = sv0.copy()
+    # -----------------------------------------------------------------
+    # expose batch optimiser helper on the returned callable
+
 
     if parameterization == "theta":
 
@@ -164,6 +185,14 @@ def get_qaoa_portfolio_objective(
             # -------- single-vector path ------------------------------
             sv0[:] = sv0_pristine
             return f_single(theta)
+
+        if device == "gpu":
+            import types
+            f.batch_opt = types.MethodType(
+                lambda self, x0, B=8, **kw:
+                batch_minimize_lbfgsb(self, np.asarray(x0), batch_size=B, **kw),
+                f,
+            )
 
         return f
 
@@ -184,6 +213,16 @@ def get_qaoa_portfolio_objective(
 
         sv0[:] = sv0_pristine
         return f_single(gamma, beta)
+
+    # -----------------------------------------------------------------
+    # expose batch optimiser helper on the returned callable
+    if device == "gpu":
+        import types
+        f.batch_opt = types.MethodType(
+            lambda self, x0, B=8, **kw:
+            batch_minimize_lbfgsb(self, np.asarray(x0), batch_size=B, **kw),
+            f,
+        )
 
     return f
 

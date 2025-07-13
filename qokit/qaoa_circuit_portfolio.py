@@ -153,7 +153,7 @@ def get_mixer_Txyv2(qubits, beta, T=1, mixer_topology='complete'):
 
 def get_mixer_RX(qc, beta):
     """A layer of RX gates"""
-    N = len(qc._qubits)
+    N = len(qc.qubits) #bug fix no attribute _qubits but qubit
     for i in range(N):
         qc.rx(2 * beta, i)
     return qc

@@ -329,3 +329,44 @@ def objective_from_counts(counts, obj):
 def invert_counts(counts):
     """Convert from lsb to msb ordering and vice versa"""
     return {k[::-1]: v for k, v in counts.items()}
+
+"""
+Utility helpers for overlapping CPU work with GPU kernels.
+Auto-no-ops if CuPy is absent.
+"""
+import contextlib
+
+try:
+    import cupy as cp
+    _gpu_stream = cp.cuda.Stream(non_blocking=True)
+    _pinned_alloc = cp.cuda.alloc_pinned_memory
+except Exception:                 # no CuPy / no CUDA
+    cp = None
+    @contextlib.contextmanager
+    def _gpu_stream():  # type: ignore
+        yield
+    def _pinned_alloc(n):          # type: ignore
+        return bytearray(n)        # fall-back
+
+@contextlib.contextmanager
+def async_stream():
+    """`with async_stream():` executes body on non-blocking stream if available."""
+    if cp is None:
+        yield
+    else:
+        with _gpu_stream:
+            yield
+
+def pinned_array(np_array):
+    """Return a CuPy-pinned copy of a NumPy array (or the same object on CPU)."""
+    if cp is None:
+        return np_array
+    try:
+        # CuPy ≥13 returns a *pointer*; wrap it
+        ptr = cp.cuda.MemoryPointer(_pinned_alloc(np_array.nbytes), 0)
+        out = cp.ndarray(np_array.shape, np_array.dtype, ptr)
+        out.set(np_array)  # host → pinned
+        return out
+    except TypeError:
+    # Older or edge builds: fall back to plain GPU array
+        return cp.asarray(np_array, order="C")

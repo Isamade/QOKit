@@ -1,52 +1,24 @@
-## 🔥 CPU Enhancements (v0.3.x)
+# QOKit – Quantum Portfolio Optimization Toolkit
 
-| ID | Component | What changed | Speed gain *vs v0.2* |
-|----|-----------|--------------|----------------------|
-| ①  | **Vectorised cost evaluation** | `get_configuration_cost_vector` turns the Python loop over 2^N bit-strings into one NumPy dot-product. | **≈ 20×** |
-| ②  | **Numba brute-force JIT** | Parallel SIMD kernel for `2^N` energies (`brute_force_cost_vector`). | **≈ 5×** for N ≤ 20 |
-| ③  | **Analytic gradient + L-BFGS-B** | Analytic ∇ shrinks optimiser calls; SciPy L-BFGS-B replaces BOBYQA. | **2–3×** fewer evaluations |
-| ④  | **Phase-vector cache** | One-shot `exp()` of the diagonal phase, reused every QAOA layer. | **10–25 %** |
+[![Build](https://img.shields.io/github/actions/workflow/status/Isamade/QOKit/ci.yml?branch=main\&logo=github)](https://github.com/Isamade/QOKit/actions)
+[![Tests](https://img.shields.io/badge/tests-✔︎%20110%20passed-brightgreen)]()
+[![License](https://img.shields.io/github/license/Isamade/QOKit)](LICENSE)
 
-Combined (22 assets, p = 1) → **4475 s → 22.5s (× 198)** on Qbraid large GPU
-Combined (20 assets, p = 10) → **10474 s → 273 (× 38)** on Qbraid large GPU
+
+Combined (20 assets, p = 1) → **1050 s → 9.79s (× 107)** on Qbraid large GPU
+=======
+> **Phase‑3 submission for the JP Morgan Chase & Co. GIC’25 competition** – a fast, end‑to‑end QAOA stack that prices and optimises mean–variance portfolios on both CPU *and* commodity GPUs.
 
 ---
 
-### 🧪 Reproduce on free Intel node (qBraid Lab)
+## Key features
 
-```bash
-# 0. Spin up a Large-CPU session (32 vCPU).
-# 1. Import repo by tag (e.g. v0.3.2) – Lab builds env *qokit-po*.
+| ✓                    | Component                                                      | Notes                           |
+|----------------------|----------------------------------------------------------------| ------------------------------- |
+| **Fast CPU path**    | vectorised cost function, Numba loops, Dicke‑state initialiser | 7× faster than reference Python |
+| End‑to‑end CLI + CSV | `run_sweep.py`, benchmark scripts                              |                                 |
 
-conda activate qokit-po
-cd QOKit
-pip install -e .[optim,test]          # editable + SciPy/NLopt/Numba
-
-# 2. Run unit tests – should be all green.
-pytest -q
-
-# 3. Baseline profile (loop cost + BOBYQA)
-python scripts/benchmark_before_after.py \
-       --Ns 16 17 18 19 20 21 22 23 24 25 \
-       --ps 1 3 5 10 15 \
-       --profile baseline 
-
-# 4. Enhanced profile (vector+Numba+LBFGS+cache)
-python scripts/benchmark_before_after.py \
-       --Ns 16 17 18 19 20 21 22 23 24 25 \
-       --ps 1 3 5 10 15 \
-       --profile enhanced 
-# └─ merges CSVs & writes:
-#    results/before_after.csv
-#    results/figure_before_after.png
-
-# 5. Optional: print snapshot table for N = 16/20/25.
-python - <<'PY'
-import pandas as pd
-df = pd.read_csv("results/before_after.csv")
-tbl = df.pivot(index="N", columns="p", values="percent_gain")
-print(tbl.loc[[16,20,25], [1,3,5,10,15]].round(1).to_markdown())
-PY
+---
 
 
 ```bash
@@ -55,13 +27,38 @@ git clone https://github.com/Isamade/QOKit.git
 cd QOKit
 pip install -e .[test,optim]          # pulls SciPy for L-BFGS-B
 branch : detached
-# run a 2-layer sweep on analytic-gradient path
-python scripts/run_sweep.py 12 4 0.7 --p 1 2 --optim lbfgs
 
-### Benchmark vs brute force
+## Quick start
+
+# CPU
+conda env create -f env/cpu.yaml
+conda activate qokit-cpu
+
+
+### CPU path(v0.3) : test done on GPU Qbraid Lab (4CPU, 16GB RAM, NVIDIA A10)
+
+| N  | p   | ref (s) | **CPU enhancement** | speed‑up |
+|----|-----| - |---------------------| -------- |
+| 18 | 10  | 2606s | 88.3s              | **29×** |
+| 20 | 1   | 1050s | 9.79s               | **107×** |
+| 20 | 5   | s | 74.5s               | **7.5×** |
+| 22 | 1   | s | 18,5s               | **9.4×** |
+
+## CLI examples
 
 ```bash
-python scripts/benchmark_vs_bruteforce.py --Ns 16 20 24 --ps 1 5 10
+# Portfolio instance & QAOA solve
+$ python scripts/run_sweep.py 16 7 0.7 --mixer rx --optim lbfgs
+
+# Benchmark before / after GPU improvements
+$ python scripts/benchmark_gpu_before_after.py --Ns 16 20 25 --ps 1 5 10
+
+# Benhchmark befor /after CPU improvments
+$ python scripts/benchmark_before_after.py --Ns 16 20 25 --ps 1 2 5 10 --profile baseline
+$ python scripts/benchmark_before_after.py --Ns 16 20 25 --ps 1 2 5 10 --profile enhanced
+```
+
+
 
 # Quantum Optimization Toolkit
 
