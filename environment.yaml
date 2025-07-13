@@ -1,0 +1,23 @@
+name: qokit-po-gpu            # qBraid will use this name
+channels:
+  - conda-forge
+dependencies:
+  # ── core ───────────────────────────────────────────────
+  - python =3.10
+  - numpy
+  - scipy
+  - numba
+  - nlopt
+
+  # ── qiskit + GPU backend ──────────────────────────────
+  - qiskit-aer-gpu           # pulls cuBLAS/cuSOLVER bindings
+  - cupy-cuda12x             # CUDA 12 build (large-GPU node uses driver 12)
+
+  # ── dev / tests ───────────────────────────────────────
+  - pytest
+  - black
+  - ruff
+  - pyright
+
+  # ── optional: jupyter for notebooks ───────────────────
+  - jupyterlab
