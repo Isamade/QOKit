@@ -7,7 +7,8 @@
 | ③  | **Analytic gradient + L-BFGS-B** | Analytic ∇ shrinks optimiser calls; SciPy L-BFGS-B replaces BOBYQA. | **2–3×** fewer evaluations |
 | ④  | **Phase-vector cache** | One-shot `exp()` of the diagonal phase, reused every QAOA layer. | **10–25 %** |
 
-Combined (12 assets, p = 3) → **63 s → 23 s (× 2.7)** on laptop-CPU.
+Combined (22 assets, p = 1) → **4475 s → 22.5s (× 198)** on Qbraid large GPU
+Combined (20 assets, p = 10) → **10474 s → 273 (× 38)** on Qbraid large GPU
 
 ---
 
