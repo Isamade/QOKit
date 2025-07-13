@@ -4,6 +4,9 @@
 [![Tests](https://img.shields.io/badge/tests-✔︎%20110%20passed-brightgreen)]()
 [![License](https://img.shields.io/github/license/Isamade/QOKit)](LICENSE)
 
+
+Combined (20 assets, p = 1) → **1050 s → 9.79s (× 107)** on Qbraid large GPU
+=======
 > **Phase‑3 submission for the JP Morgan Chase & Co. GIC’25 competition** – a fast, end‑to‑end QAOA stack that prices and optimises mean–variance portfolios on both CPU *and* commodity GPUs.
 
 ---
@@ -13,13 +16,17 @@
 | ✓                    | Component                                                      | Notes                           |
 |----------------------|----------------------------------------------------------------| ------------------------------- |
 | **Fast CPU path**    | vectorised cost function, Numba loops, Dicke‑state initialiser | 7× faster than reference Python |
-| **GPU path v0.4**    | statevector CUDA kernel + CuPy cost diagonal                   | 10–11× over CPU baseline        |
-| Batch L‑BFGS‑B       | evaluates eight θ‑vectors per kernel                           | hides launch latency            |
-| Async H2D streams    | pinned buffers & non‑blocking copy                             | +10–15 % on A10                 |
-| Plug‑in mixers       | `mixer="rx"` (Pauli‑X) & `"trotter_ring"` (XY)                 |                                 |
 | End‑to‑end CLI + CSV | `run_sweep.py`, benchmark scripts                              |                                 |
 
 ---
+
+
+```bash
+# clone and install (CPU-only)
+git clone https://github.com/Isamade/QOKit.git
+cd QOKit
+pip install -e .[test,optim]          # pulls SciPy for L-BFGS-B
+branch : detached
 
 ## Quick start
 
@@ -27,31 +34,15 @@
 conda env create -f env/cpu.yaml
 conda activate qokit-cpu
 
-# GPU
-conda env create -f env/gpu.yaml
-conda activate qokit-gpu
-```
----
-
-## Performance highlights *(A10, single‑precision)*
 
 ### CPU path(v0.3) : test done on GPU Qbraid Lab (4CPU, 16GB RAM, NVIDIA A10)
 
 | N  | p   | ref (s) | **CPU enhancement** | speed‑up |
 |----|-----| - |---------------------| -------- |
-| 18 | 10  | s | 164.6s              | **7.5×** |
-| 20 | 1   | s | 12.6s               | **7.5×** |
+| 18 | 10  | 2606s | 88.3s              | **29×** |
+| 20 | 1   | 1050s | 9.79s               | **107×** |
 | 20 | 5   | s | 74.5s               | **7.5×** |
 | 22 | 1   | s | 18,5s               | **9.4×** |
-
-### GPU path(v0.4.)
-
-| N  | p  | baselineGPU | **GPU enhancement** | speed‑up |
-| -- | -- | ---------- |-------------------| -------- |
-| 20 | 5  | 9s         | 5s                | **×1.8** |
-| 25 | 10 | 32s        | 15s               | **×2.1** |
-
-Full benchmark reproduction lives in [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ## CLI examples
 
