@@ -50,10 +50,10 @@ PY
 
 ```bash
 # clone and install (CPU-only)
-git clone https://github.com/jerome79/QOKit.git
+git clone https://github.com/Isamade/QOKit.git
 cd QOKit
-pip install -e .[optim]          # pulls SciPy for L-BFGS-B
-
+pip install -e .[test,optim]          # pulls SciPy for L-BFGS-B
+branch : detached
 # run a 2-layer sweep on analytic-gradient path
 python scripts/run_sweep.py 12 4 0.7 --p 1 2 --optim lbfgs
 
