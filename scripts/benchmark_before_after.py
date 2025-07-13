@@ -87,28 +87,28 @@ def one_case(N, p, q, Kfac, profile):
 
 # --- CLI ----------------------------------------------------------------- #
 if __name__ == "__main__":
-    pa = argparse.ArgumentParser()
-    pa.add_argument("--Ns", nargs="+", type=int, default=[16])
-    pa.add_argument("--ps", nargs="+", type=int, default=[1])
-    pa.add_argument("--q", type=float,  default=0.7)
-    pa.add_argument("--Kfac", type=float, default=0.3)
-    pa.add_argument("--profile", choices=["baseline", "enhanced"],
-                    default="enhanced")
-    args = pa.parse_args()
+   #pa = argparse.ArgumentParser()
+   #pa.add_argument("--Ns", nargs="+", type=int, default=[16])
+   #pa.add_argument("--ps", nargs="+", type=int, default=[1])
+   #pa.add_argument("--q", type=float,  default=0.7)
+   #pa.add_argument("--Kfac", type=float, default=0.3)
+   #pa.add_argument("--profile", choices=["baseline", "enhanced"],
+   #                default="enhanced")
+   #args = pa.parse_args()
 
-    rows = [dict(N=N, p=p,
-                 runtime=one_case(N,p,args.q,args.Kfac,args.profile),
-                 profile=args.profile)
-            for N,p in itertools.product(args.Ns, args.ps)]
+    #rows = [dict(N=N, p=p,
+    #             runtime=one_case(N,p,args.q,args.Kfac,args.profile),
+    #             profile=args.profile)
+    #        for N,p in itertools.product(args.Ns, args.ps)]
 
     out = pathlib.Path("results");
     out.mkdir(exist_ok=True)
-    csv_path = out / f"{args.profile}_cpu.csv"
-    with csv_path.open("w", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=rows[0].keys())
-        writer.writeheader();
-        writer.writerows(rows)
-    print("CSV →", csv_path)
+    #csv_path = out / f"{args.profile}_cpu.csv"
+    #with csv_path.open("w", newline="") as fh:
+    #    writer = csv.DictWriter(fh, fieldnames=rows[0].keys())
+    #    writer.writeheader();
+    #    writer.writerows(rows)
+    #print("CSV →", csv_path)
 
     # merge & plot if both files exist
     base, enh = out/"baseline_cpu.csv", out/"enhanced_cpu.csv"
@@ -116,7 +116,7 @@ if __name__ == "__main__":
         import pandas as pd, matplotlib.pyplot as plt
         b = pd.read_csv(base); e = pd.read_csv(enh)
         m = b.merge(e, on=["N","p"], suffixes=("_base","_enh"))
-        m["percent_gain"] = 100*(m["runtime_base"]-m["runtime_enh"]) / m["runtime_base"]
+        m["percent_gain"] = 100*(m["runtime_base"].astype(float)-m["runtime_enh"].astype(float)) / m["runtime_base"].astype(float)
         m.to_csv(out/"before_after.csv", index=False)
         for p, g in m.groupby("p"):
             plt.plot(g["N"], g["percent_gain"], marker="o", label=f"p={p}")

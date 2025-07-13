@@ -5,7 +5,9 @@ from .python.qaoa_simulator import QAOAFURXSimulator, QAOAFURXYRingSimulator, QA
 from .nbcuda.qaoa_simulator import QAOAFURXSimulatorGPU, QAOAFURXYRingSimulatorGPU, QAOAFURXYCompleteSimulatorGPU
 from .mpi_nbcuda.qaoa_simulator import QAOAFURXSimulatorGPUMPI
 from .mpi_nbcuda.qaoa_simulator import mpi_available
+from qokit.simulator import FastCPUSimulator, QiskitCPUSimulator
 from .c import is_available as c_available
+from functools import partial
 
 # from .mpi_custatevec import CuStateVecMPIQAOASimulator
 
@@ -15,17 +17,22 @@ SIMULATORS = {
         "python": QAOAFURXSimulator,
         "gpu": QAOAFURXSimulatorGPU,
         "gpumpi": QAOAFURXSimulatorGPUMPI,
+        "fast": FastCPUSimulator,
+        "qiskit":QiskitCPUSimulator
     },
     "xyring": {
         "c": QAOAFURXYRingSimulatorC,
         "python": QAOAFURXYRingSimulator,
         "gpu": QAOAFURXYRingSimulatorGPU,
+        "qiskit":QiskitCPUSimulator
     },
     "xycomplete": {
         "c": QAOAFURXYCompleteSimulatorC,
         "python": QAOAFURXYCompleteSimulator,
         "gpu": QAOAFURXYCompleteSimulatorGPU,
-    },
+        "qiskit":QiskitCPUSimulator
+    }
+
 }
 
 
@@ -72,17 +79,48 @@ def get_available_simulators(type: str = "x") -> list:
     return [SIMULATORS[type][s] for s in available_names]
 
 
-def choose_simulator(name="auto", **kwargs):
+def choose_simulator(name="auto", backend=None, **kwargs):
+    """
+    Return **a simulator class wrapped with the optional Aer backend**.
+
+        Parameters
+        ----------
+        name : {"auto", "qiskit", "fast"}
+            If "auto", picks the first available simulator for the 'x' mixer.
+        backend : qiskit_aer.AerSimulator | None
+            Pass `statevector` or `statevector_gpu` down so the simulator can
+            call `backend.run(...)` on CPU or GPU transparently.
+    """
+    # explicit selection
     if name != "auto":
-        return SIMULATORS["x"][name]
+        sim_cls = SIMULATORS["x"][name]  # original mapping
+    else:
+        sim_cls = get_available_simulators("x")[0]  # first available
+    # wrap the constructor to inject the backend kw-arg only if provided
+    if backend is None:
+        return sim_cls
+    return partial(sim_cls, backend=backend)
 
-    return get_available_simulators("x")[0]
+def choose_simulator_xyring(name="auto",backend = None, **kwargs):
+    """
+        Return **a simulator class wrapped with the optional Aer backend**.
 
-
-def choose_simulator_xyring(name="auto", **kwargs):
+            Parameters
+            ----------
+            name : {"auto", "qiskit", "fast"}
+                If "auto", picks the first available simulator for the 'x' mixer.
+            backend : qiskit_aer.AerSimulator | None
+                Pass `statevector` or `statevector_gpu` down so the simulator can
+                call `backend.run(...)` on CPU or GPU transparently.
+        """
     if name != "auto":
-        return SIMULATORS["xyring"][name]
-    return get_available_simulators("xyring")[0]
+        xy_sim_cls= SIMULATORS["xyring"][name]
+    else:
+        xy_sim_cls = get_available_simulators("xyring")[0]
+        # wrap the constructor to inject the backend kw-arg only if provided
+    if backend is None:
+        return xy_sim_cls
+    return partial(xy_sim_cls, backend=backend)
 
 
 def choose_simulator_xycomplete(name="auto", **kwargs):
