@@ -23,27 +23,14 @@
 
 ## Quick start
 
-### CPU‑only
+# CPU
+conda env create -f env/cpu.yaml
+conda activate qokit-cpu
 
-```bash
-# 1. clone
-$ git clone https://github.com/Isamade/QOKit && cd QOKit
-# 2. env (Python ≥3.9)
-$ conda env create -f envs/cpu.yaml && conda activate qokit-cpu
-# 3. smoke‑test
-$ pytest -q                # 110 tests – all green
+# GPU
+conda env create -f env/gpu.yaml
+conda activate qokit-gpu
 ```
-
-### GPU (CUDA 12.x)
-
-```bash
-$ conda env create -f envs/gpu.yaml && conda activate qokit-gpu
-$ pytest -q                # GPU tests included
-$ python scripts/run_sweep.py 25 10 0.7 --device gpu --mixer trotter_ring
-```
-
-*(CUDA 11 users: use `gpu-cuda11.yaml`)*
-
 ---
 
 ## Performance highlights *(A10, single‑precision)*
