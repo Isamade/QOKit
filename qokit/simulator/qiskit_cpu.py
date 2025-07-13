@@ -63,4 +63,4 @@ class QiskitCPUSimulator(QAOAFastSimulatorBase):
         return -e if optimization_type == "max" else e
 
     def get_overlap(self, sv, costs, indices, *, preserve_state, optimization_type):
-        return float(np.abs(sv)**2 [indices].sum())
+        return float(np.abs(sv)**2)[indices].sum()
